@@ -15,7 +15,7 @@ class Settings(BaseSettings):
 
     # LLM APIs (used starting Phase 2 — extraction/synthesis)
     groq_api_key: str = ""
-    anthropic_api_key: str = ""
+    gemini_api_key: str = ""
 
     # Neo4j (used starting Phase 3 — graph indexing)
     neo4j_uri: str = "bolt://neo4j:7687"
