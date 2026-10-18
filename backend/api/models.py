@@ -1,7 +1,20 @@
-"""
-Pydantic request/response models for the API.
+"""Pydantic models for the public API and ingestion data contracts."""
 
-Empty in Phase 1 — populated starting Phase 2 with IngestRequest/Response,
-then Phase 4 with QueryRequest/Response. Keeping the file present now so
-routes.py has somewhere obvious to import from later.
-"""
+from pydantic import BaseModel, Field
+
+
+class IngestResponse(BaseModel):
+    status: str = "success"
+    document_id: str
+    chunks_created: int = Field(ge=0)
+    entities_extracted: int = Field(ge=0)
+    relationships_extracted: int = Field(ge=0)
+    avg_confidence: float = Field(ge=0, le=1)
+    pages: int = Field(ge=0)
+    processing_time_seconds: float = Field(ge=0)
+
+
+class ErrorResponse(BaseModel):
+    status: str = "error"
+    error: str
+    details: str | None = None

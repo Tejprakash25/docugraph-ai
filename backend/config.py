@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     # LLM APIs (used starting Phase 2 — extraction/synthesis)
     groq_api_key: str = ""
     gemini_api_key: str = ""
+    groq_model: str = "llama-3.1-8b-instant"
+    gemini_model: str = "gemini-2.0-flash"
+    llm_timeout_seconds: float = 30.0
+    extraction_concurrency: int = 4
 
     # Neo4j (used starting Phase 3 — graph indexing)
     neo4j_uri: str = "bolt://neo4j:7687"
@@ -25,6 +29,11 @@ class Settings(BaseSettings):
     # Qdrant (used starting Phase 3 — vector indexing)
     qdrant_url: str = "http://qdrant:6333"
     qdrant_api_key: str = ""
+
+    # Ingestion (Phase 2)
+    max_upload_size_mb: int = 50
+    chunk_size_tokens: int = 400
+    chunk_overlap_tokens: int = 50
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

@@ -1,5 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 
 from api.routes import router
@@ -32,6 +34,24 @@ app.add_middleware(
 )
 
 app.include_router(router)
+
+
+@app.exception_handler(HTTPException)
+async def http_error_handler(request: Request, exc: HTTPException) -> JSONResponse:
+    del request
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"status": "error", "error": str(exc.detail), "details": None},
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+    del request
+    return JSONResponse(
+        status_code=422,
+        content={"status": "error", "error": "Invalid request", "details": str(exc.errors())},
+    )
 
 
 @app.get("/health")
