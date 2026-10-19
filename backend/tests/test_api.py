@@ -2,6 +2,28 @@ import fitz
 from fastapi.testclient import TestClient
 
 from main import app
+from api.routes import get_indexing_service, get_ingestion_service
+from services.ingest import PdfIngestionService
+
+
+app.dependency_overrides[get_ingestion_service] = lambda: PdfIngestionService()
+
+
+class FakeIndexing:
+    def get_document_stats(self, document_id: str):
+        return {
+            "document_id": document_id,
+            "status": "indexed",
+            "extraction_quality": {
+                "entities_by_type": {"Person": 2},
+                "avg_confidence_by_type": {"Person": 0.9},
+                "relationships_by_predicate": {"signs": 1},
+                "overall_quality_score": 0.9,
+            },
+        }
+
+    def health(self):
+        return {"neo4j": "connected", "qdrant": "connected"}
 
 
 def make_pdf(text: str) -> bytes:
@@ -43,3 +65,28 @@ def test_ingest_endpoint_rejects_path_traversal_document_id() -> None:
     assert response.status_code == 422
     assert response.json()["status"] == "error"
     assert response.json()["error"] == "document_id must contain only letters, numbers, underscores, and hyphens"
+
+
+def test_document_stats_endpoint_returns_extraction_quality() -> None:
+    app.dependency_overrides[get_indexing_service] = lambda: FakeIndexing()
+    client = TestClient(app)
+
+    response = client.get("/documents/contract_001/stats")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "indexed"
+    assert response.json()["extraction_quality"]["overall_quality_score"] == 0.9
+
+
+def test_health_reports_storage_connectivity(monkeypatch) -> None:
+    import main
+
+    monkeypatch.setattr(main, "get_indexing_service", lambda: FakeIndexing())
+    client = TestClient(app)
+
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "healthy"
+    assert response.json()["services"]["neo4j"] == "connected"
+    assert response.json()["services"]["qdrant"] == "connected"

@@ -81,9 +81,8 @@ Dependency versions must be verified at installation time. In particular, the re
 
 ## Current alignment
 
-The repository currently matches the reference documents’ Phase 1 status: FastAPI skeleton, environment configuration, Docker Compose with FastAPI/Neo4j/Qdrant, and `/health` are present. Phases 2–7 remain planned.
+The repository has completed Phases 1–3: FastAPI foundation, PDF ingestion and extraction, Neo4j/Qdrant indexing, document statistics, and connectivity-aware health reporting. Phases 4–7 remain planned.
 
 ## Approval gate
 
 This reference summary is saved for review. No code, dependency, Docker, environment, or infrastructure changes should begin until the plan and these references are approved.
-

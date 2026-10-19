@@ -16,6 +16,11 @@ python-multipart==0.0.20
 groq==0.13.0
 google-genai==1.2.0
 
+# Phase 3 indexing and embeddings
+neo4j==5.26.0
+qdrant-client==1.12.1
+sentence-transformers==3.3.1
+
 # Testing
 pytest==7.4.3
 pytest-asyncio==0.21.1

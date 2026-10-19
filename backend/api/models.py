@@ -18,3 +18,16 @@ class ErrorResponse(BaseModel):
     status: str = "error"
     error: str
     details: str | None = None
+
+
+class ExtractionQuality(BaseModel):
+    entities_by_type: dict[str, int]
+    avg_confidence_by_type: dict[str, float]
+    relationships_by_predicate: dict[str, int]
+    overall_quality_score: float = Field(ge=0, le=1)
+
+
+class DocumentStatsResponse(BaseModel):
+    document_id: str
+    status: str
+    extraction_quality: ExtractionQuality

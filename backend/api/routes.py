@@ -1,19 +1,28 @@
 """HTTP endpoints for the DocuGraph API."""
 
+import asyncio
 import re
+from functools import lru_cache
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 
-from api.models import ErrorResponse, IngestResponse
+from api.models import DocumentStatsResponse, ErrorResponse, IngestResponse
 from config import settings
 from services.ingest import IngestionError, PdfIngestionService
+from services.indexing import IndexingService
+from services.neo4j_handler import DocumentNotFoundError
 
 router = APIRouter()
 _DOCUMENT_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
 
 
+@lru_cache(maxsize=1)
+def get_indexing_service() -> IndexingService:
+    return IndexingService()
+
+
 def get_ingestion_service() -> PdfIngestionService:
-    return PdfIngestionService()
+    return PdfIngestionService(indexing_service=get_indexing_service())
 
 
 @router.post(
@@ -65,3 +74,23 @@ async def ingest_document(
         pages=summary.pages,
         processing_time_seconds=summary.processing_time_seconds,
     )
+
+
+@router.get(
+    "/documents/{document_id}/stats",
+    response_model=DocumentStatsResponse,
+    responses={404: {"model": ErrorResponse}, 503: {"model": ErrorResponse}},
+)
+async def document_stats(
+    document_id: str,
+    indexing_service: IndexingService = Depends(get_indexing_service),
+) -> DocumentStatsResponse:
+    if not _DOCUMENT_ID.fullmatch(document_id):
+        raise HTTPException(status_code=422, detail="Invalid document_id")
+    try:
+        result = await asyncio.to_thread(indexing_service.get_document_stats, document_id)
+    except DocumentNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=f"Document not found: {document_id}") from exc
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Neo4j is unavailable") from exc
+    return DocumentStatsResponse.model_validate(result)

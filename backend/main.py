@@ -3,8 +3,9 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
+import asyncio
 
-from api.routes import router
+from api.routes import get_indexing_service, router
 from config import settings
 
 
@@ -56,12 +57,15 @@ async def validation_error_handler(request: Request, exc: RequestValidationError
 
 @app.get("/health")
 async def health():
-    """
-    Phase 1 version: just confirms the API process is up.
-    Phase 3 will extend this to report Neo4j/Qdrant connectivity
-    (see TRD Endpoint 4 spec).
-    """
-    return {"status": "healthy", "version": "0.1.0"}
+    storage = await asyncio.to_thread(get_indexing_service().health)
+    llm_status = "connected" if settings.groq_api_key or settings.gemini_api_key else "fallback"
+    services = {"llm": llm_status, **storage}
+    storage_connected = all(value == "connected" for value in storage.values())
+    return {
+        "status": "healthy" if storage_connected else "degraded",
+        "version": "0.1.0",
+        "services": services,
+    }
 
 
 if __name__ == "__main__":

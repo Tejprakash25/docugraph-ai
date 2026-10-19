@@ -5,14 +5,14 @@ fused into auditable, citation-backed answers.
 
 Full spec: see `DocuGraph_AI_Master_Build_Prompt.md`.
 
-## Status: Phase 2 — Ingestion Complete
+## Status: Phase 3 — Indexing Complete
 
 - [x] FastAPI skeleton
 - [x] Config via pydantic-settings
 - [x] Docker Compose (FastAPI + Neo4j + Qdrant)
 - [x] `/health` endpoint
 - [x] Ingestion pipeline (Phase 2): PDF parsing, chunking, extraction, confidence scoring, `POST /ingest`
-- [ ] Neo4j/Qdrant indexing (Phase 3)
+- [x] Neo4j/Qdrant indexing (Phase 3), metadata, document stats, and connectivity health
 - [ ] Hybrid query (Phase 4)
 - [ ] Synthesis + citations (Phase 5)
 - [ ] Frontend (Phase 6)
@@ -43,6 +43,25 @@ The Phase 2 response reports pages, chunks, extracted entities, extracted
 relationships, average confidence, and processing time. When API keys are not
 available or a provider fails, ingestion uses the local deterministic fallback
 so the pipeline remains runnable offline.
+
+Check indexed document statistics:
+
+```bash
+curl http://localhost:8000/documents/contract_001/stats
+```
+
+The stats endpoint requires Neo4j and returns entity counts, average confidence
+by entity type, relationship counts, and an overall extraction-quality score.
+
+Check service connectivity:
+
+```bash
+curl http://localhost:8000/health
+```
+
+Phase 3 health reports the LLM mode plus Neo4j and Qdrant connectivity. With
+Docker stopped, the API reports `degraded`; with Docker running, all three
+services should report their active state.
 
 Neo4j browser: http://localhost:7474 (user: `neo4j`, password: whatever you set in `.env`)
 Qdrant dashboard: http://localhost:6333/dashboard

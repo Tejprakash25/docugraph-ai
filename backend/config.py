@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-2.0-flash"
     llm_timeout_seconds: float = 30.0
     extraction_concurrency: int = 4
+    embedding_model: str = "all-MiniLM-L6-v2"
+    embedding_dimension: int = 384
+    embedding_allow_fallback: bool = True
 
     # Neo4j (used starting Phase 3 — graph indexing)
     neo4j_uri: str = "bolt://neo4j:7687"
@@ -29,13 +32,22 @@ class Settings(BaseSettings):
     # Qdrant (used starting Phase 3 — vector indexing)
     qdrant_url: str = "http://qdrant:6333"
     qdrant_api_key: str = ""
+    qdrant_collection: str = "docugraph_chunks"
+    storage_timeout_seconds: float = 2.0
 
     # Ingestion (Phase 2)
     max_upload_size_mb: int = 50
     chunk_size_tokens: int = 400
     chunk_overlap_tokens: int = 50
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    # The shared project .env also contains variables owned by later phases
+    # (for example, the frontend API URL). Ignore those unrelated keys while
+    # still validating every backend setting declared above.
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
 
 # Import this singleton everywhere instead of instantiating Settings() again

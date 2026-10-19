@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import re
 import time
 from dataclasses import dataclass, field
@@ -42,6 +43,7 @@ class DocumentChunk:
 class ParsedDocument:
     document_id: str
     filename: str
+    content_hash: str
     page_count: int
     pages: list[PageText]
     chunks: list[DocumentChunk]
@@ -58,6 +60,7 @@ class IngestionSummary:
     processing_time_seconds: float
     chunks: list[DocumentChunk] = field(default_factory=list)
     extractions: dict[str, ExtractionResult] = field(default_factory=dict)
+    indexing: dict[str, str] = field(default_factory=dict)
 
 
 TOKEN_PATTERN = re.compile(r"\S+")
@@ -154,11 +157,12 @@ def parse_pdf(
         )
         if start + chunk_size >= len(tokens):
             break
-    return ParsedDocument(document_id, filename, page_count, pages, chunks)
+    return ParsedDocument(document_id, filename, hashlib.sha256(content).hexdigest(), page_count, pages, chunks)
 
 
 class PdfIngestionService:
-    def __init__(self, extractor: Any | None = None) -> None:
+    def __init__(self, extractor: Any | None = None, indexing_service: Any | None = None) -> None:
+        self.indexing_service = indexing_service
         self.extractor = extractor or ResilientExtractor(
             groq_api_key=settings.groq_api_key,
             gemini_api_key=settings.gemini_api_key,
@@ -193,7 +197,6 @@ class PdfIngestionService:
         filename: str,
         document_type: str | None = None,
     ) -> IngestionSummary:
-        del document_type  # Reserved for Phase 3 metadata persistence.
         started = time.perf_counter()
         parsed = parse_pdf(content, document_id, filename)
         semaphore = asyncio.Semaphore(max(1, settings.extraction_concurrency))
@@ -211,6 +214,12 @@ class PdfIngestionService:
             relationships.extend(result.relationships)
             confidences.extend(result.confidence_values)
         average = sum(confidences) / len(confidences) if confidences else 0.0
+        indexing = {}
+        if self.indexing_service is not None:
+            index_result = await self.indexing_service.index_document(
+                document_id, parsed, extracted, document_type
+            )
+            indexing = {"neo4j": index_result.neo4j, "qdrant": index_result.qdrant}
         return IngestionSummary(
             document_id=document_id,
             chunks_created=len(parsed.chunks),
@@ -221,4 +230,5 @@ class PdfIngestionService:
             processing_time_seconds=round(time.perf_counter() - started, 4),
             chunks=parsed.chunks,
             extractions=extracted,
+            indexing=indexing,
         )

@@ -10,6 +10,11 @@ services:
       - NEO4J_USER=neo4j
       - NEO4J_PASSWORD=${NEO4J_PASSWORD}
       - QDRANT_URL=http://qdrant:6333
+      - QDRANT_COLLECTION=${QDRANT_COLLECTION:-docugraph_chunks}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-all-MiniLM-L6-v2}
+      - EMBEDDING_DIMENSION=${EMBEDDING_DIMENSION:-384}
+      - EMBEDDING_ALLOW_FALLBACK=${EMBEDDING_ALLOW_FALLBACK:-true}
+      - STORAGE_TIMEOUT_SECONDS=${STORAGE_TIMEOUT_SECONDS:-2}
     depends_on:
       - neo4j
       - qdrant
