@@ -31,3 +31,20 @@ class DocumentStatsResponse(BaseModel):
     document_id: str
     status: str
     extraction_quality: ExtractionQuality
+
+
+class QueryRequest(BaseModel):
+    query: str = Field(min_length=2, max_length=2000)
+    document_id: str | None = Field(default=None, min_length=1, max_length=128, pattern=r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
+    top_k: int = Field(default=8, ge=1, le=50)
+    graph_limit: int = Field(default=20, ge=1, le=50)
+    max_hops: int = Field(default=2, ge=1, le=2)
+
+
+class QueryResponse(BaseModel):
+    status: str = "success"
+    query: str
+    vector_results: list[dict]
+    graph_results: list[dict]
+    fused_results: list[dict]
+    query_plan: dict

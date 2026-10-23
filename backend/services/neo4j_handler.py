@@ -186,3 +186,59 @@ class Neo4jStore:
                 "overall_quality_score": round(overall, 4),
             },
         }
+
+    def search_graph(
+        self,
+        *,
+        entity_names: list[str],
+        limit: int = 20,
+        document_id: str | None = None,
+        max_hops: int = 2,
+    ) -> list[dict[str, Any]]:
+        """Search extracted relationships using fixed, parameterized Cypher."""
+        if not entity_names:
+            return []
+        safe_limit = max(1, min(limit, 50))
+        safe_hops = max(1, min(max_hops, 2))
+        query = f"""
+        MATCH path=(seed:Entity)-[:RELATED*1..{safe_hops}]-(target:Entity)
+        WHERE any(term IN $entity_names WHERE
+            toLower(seed.name) CONTAINS toLower(term) OR
+            toLower(target.name) CONTAINS toLower(term))
+        WITH seed, target, relationships(path)[0] AS rel
+        OPTIONAL MATCH (c:Chunk)-[:MENTIONS]->(seed)
+        WHERE $document_id IS NULL OR c.document_id = $document_id
+        RETURN seed.name AS source,
+               seed.type AS source_type,
+               rel.predicate AS predicate,
+               target.name AS target,
+               target.type AS target_type,
+               rel.confidence AS confidence,
+               rel.evidence AS evidence,
+               collect(DISTINCT c.chunk_id)[..20] AS chunk_ids,
+               collect(DISTINCT c.page_numbers)[..20] AS pages
+        ORDER BY confidence DESC
+        LIMIT $limit
+        """
+        with self._get_driver().session() as session:
+            rows = session.run(
+                query,
+                entity_names=entity_names,
+                document_id=document_id,
+                limit=safe_limit,
+            ).data()
+        return [
+            {
+                "source": row.get("source", ""),
+                "source_type": row.get("source_type", "Unknown"),
+                "predicate": row.get("predicate", "related_to"),
+                "target": row.get("target", ""),
+                "target_type": row.get("target_type", "Unknown"),
+                "confidence": max(0.0, min(float(row.get("confidence") or 0.0), 1.0)),
+                "evidence": row.get("evidence"),
+                "chunk_ids": [str(value) for value in (row.get("chunk_ids") or []) if value],
+                "pages": row.get("pages") or [],
+                "score": max(0.0, min(float(row.get("confidence") or 0.0), 1.0)),
+            }
+            for row in rows
+        ]

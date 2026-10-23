@@ -30,12 +30,15 @@ Implemented with Neo4j graph persistence, Qdrant vector persistence, 384-dimensi
 embeddings with a deterministic offline fallback, document quality statistics, and
 degraded-service health reporting.
 
-## Phase 4: Query Processing
+## Phase 4 ✅ DONE: Query Processing
 
 - Vector search
 - Natural-language-to-Cypher translation
 - Graph search
 - Search fusion and ranking
+
+Implemented with bounded Qdrant retrieval, parameterized Neo4j graph search,
+safe natural-language query planning, and weighted vector/graph fusion.
 
 ## Phase 5: Synthesis
 
@@ -63,4 +66,4 @@ degraded-service health reporting.
 
 ## Current Status
 
-Phases 1, 2, and 3 are complete. Phase 4 — hybrid vector and graph query processing — is next.
+Phases 1, 2, 3, and 4 are complete. Phase 5 — answer synthesis and citations — is next.

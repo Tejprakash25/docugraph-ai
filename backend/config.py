@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     # App
     fastapi_env: str = "development"
     debug: bool = True
+    cors_allowed_origins: str = "http://localhost:5173,http://localhost:3000"
 
     # LLM APIs (used starting Phase 2 — extraction/synthesis)
     groq_api_key: str = ""

@@ -25,13 +25,17 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS — tighten allow_origins to the Vercel frontend URL before deploying
+# CORS is explicitly allowlisted; never combine wildcard origins with credentials.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        origin.strip()
+        for origin in settings.cors_allowed_origins.split(",")
+        if origin.strip() and origin.strip() != "*"
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type"],
 )
 
 app.include_router(router)

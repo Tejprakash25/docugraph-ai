@@ -81,7 +81,7 @@ Dependency versions must be verified at installation time. In particular, the re
 
 ## Current alignment
 
-The repository has completed Phases 1–3: FastAPI foundation, PDF ingestion and extraction, Neo4j/Qdrant indexing, document statistics, and connectivity-aware health reporting. Phases 4–7 remain planned.
+The repository has completed Phases 1–4: FastAPI foundation, PDF ingestion and extraction, Neo4j/Qdrant indexing, document statistics, connectivity-aware health reporting, and safe hybrid vector/graph query processing. Phases 5–7 remain planned.
 
 ## Approval gate
 

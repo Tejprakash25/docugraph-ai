@@ -2,7 +2,7 @@ import fitz
 from fastapi.testclient import TestClient
 
 from main import app
-from api.routes import get_indexing_service, get_ingestion_service
+from api.routes import get_indexing_service, get_ingestion_service, get_query_service
 from services.ingest import PdfIngestionService
 
 
@@ -90,3 +90,32 @@ def test_health_reports_storage_connectivity(monkeypatch) -> None:
     assert response.json()["status"] == "healthy"
     assert response.json()["services"]["neo4j"] == "connected"
     assert response.json()["services"]["qdrant"] == "connected"
+
+
+def test_query_endpoint_returns_hybrid_contract() -> None:
+    class FakeQuery:
+        async def search(self, query, **kwargs):
+            return {
+                "query": query,
+                "vector_results": [],
+                "graph_results": [],
+                "fused_results": [],
+                "query_plan": {"translator": "safe_parameterized_template", "entity_terms": [], "confidence": 0.75},
+            }
+
+    app.dependency_overrides[get_query_service] = lambda: FakeQuery()
+    client = TestClient(app)
+    response = client.post("/query", json={"query": "Who signed the contract?"})
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "success"
+    assert response.json()["query_plan"]["translator"] == "safe_parameterized_template"
+    app.dependency_overrides.pop(get_query_service, None)
+
+
+def test_query_endpoint_rejects_path_traversal_document_id() -> None:
+    client = TestClient(app)
+    response = client.post("/query", json={"query": "find data", "document_id": "../secrets"})
+
+    assert response.status_code == 422
+    assert response.json()["status"] == "error"

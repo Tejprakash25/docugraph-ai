@@ -6,11 +6,12 @@ from functools import lru_cache
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 
-from api.models import DocumentStatsResponse, ErrorResponse, IngestResponse
+from api.models import DocumentStatsResponse, ErrorResponse, IngestResponse, QueryRequest, QueryResponse
 from config import settings
 from services.ingest import IngestionError, PdfIngestionService
 from services.indexing import IndexingService
 from services.neo4j_handler import DocumentNotFoundError
+from services.query import HybridQueryService
 
 router = APIRouter()
 _DOCUMENT_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
@@ -23,6 +24,11 @@ def get_indexing_service() -> IndexingService:
 
 def get_ingestion_service() -> PdfIngestionService:
     return PdfIngestionService(indexing_service=get_indexing_service())
+
+
+@lru_cache(maxsize=1)
+def get_query_service() -> HybridQueryService:
+    return HybridQueryService()
 
 
 @router.post(
@@ -94,3 +100,18 @@ async def document_stats(
     except Exception as exc:
         raise HTTPException(status_code=503, detail="Neo4j is unavailable") from exc
     return DocumentStatsResponse.model_validate(result)
+
+
+@router.post("/query", response_model=QueryResponse)
+async def query_documents(
+    request: QueryRequest,
+    query_service: HybridQueryService = Depends(get_query_service),
+) -> QueryResponse:
+    result = await query_service.search(
+        request.query,
+        document_id=request.document_id,
+        top_k=request.top_k,
+        graph_limit=request.graph_limit,
+        max_hops=request.max_hops,
+    )
+    return QueryResponse.model_validate(result)

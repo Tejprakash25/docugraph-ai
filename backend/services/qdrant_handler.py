@@ -74,3 +74,53 @@ class QdrantStore:
                 points=qdrant_points,
                 wait=True,
             )
+
+    def search_chunks(
+        self,
+        *,
+        vector: list[float],
+        limit: int,
+        document_id: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Run a bounded semantic search and return only safe payload fields."""
+        from qdrant_client.http import models
+
+        safe_limit = max(1, min(limit, 50))
+        query_filter = None
+        if document_id:
+            query_filter = models.Filter(
+                must=[models.FieldCondition(key="document_id", match=models.MatchValue(value=document_id))]
+            )
+        client = self._get_client()
+        if hasattr(client, "query_points"):
+            response = client.query_points(
+                collection_name=self.collection_name,
+                query=vector,
+                query_filter=query_filter,
+                limit=safe_limit,
+                with_payload=True,
+            )
+            points = response.points
+        else:
+            points = client.search(
+                collection_name=self.collection_name,
+                query_vector=vector,
+                query_filter=query_filter,
+                limit=safe_limit,
+                with_payload=True,
+            )
+        results: list[dict[str, Any]] = []
+        for point in points:
+            payload = point.payload or {}
+            results.append(
+                {
+                    "chunk_id": str(payload.get("chunk_id") or point.id),
+                    "document_id": str(payload.get("document_id") or ""),
+                    "page_number": int(payload.get("page_number") or 0),
+                    "page_numbers": [int(page) for page in payload.get("page_numbers", [])],
+                    "text": str(payload.get("text") or ""),
+                    "confidence": float(payload.get("confidence") or 0.0),
+                    "score": float(point.score or 0.0),
+                }
+            )
+        return results
