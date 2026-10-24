@@ -44,6 +44,29 @@ relationships, average confidence, and processing time. When API keys are not
 available or a provider fails, ingestion uses the local deterministic fallback
 so the pipeline remains runnable offline.
 
+## Synthetic contract fixtures
+
+The repository includes five fictional, non-legal documents in
+`data/sample_contracts/`. Generate their PDFs with:
+
+```bash
+.venv/bin/python scripts/generate_sample_pdfs.py
+```
+
+Then ingest them one at a time:
+
+```bash
+for id in 001 002 003 004 005; do
+  curl -X POST http://localhost:8000/ingest \
+    -F "document_id=contract_${id}" \
+    -F "document_type=synthetic_contract" \
+    -F "file=@data/sample_contracts/contract_${id}.pdf"
+done
+```
+
+These fixtures are for local testing only. They are intentionally marked as
+fictional and must not be treated as legal documents.
+
 Check indexed document statistics:
 
 ```bash

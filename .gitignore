@@ -17,6 +17,7 @@ build/
 
 # OS
 .DS_Store
+data/sample_contracts/*.pdf
 
 # IDE
 .vscode/
