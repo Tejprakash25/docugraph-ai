@@ -5,7 +5,7 @@ fused into auditable, citation-backed answers.
 
 Full spec: see `DocuGraph_AI_Master_Build_Prompt.md`.
 
-## Status: Phase 4 — Hybrid Query Processing Complete
+## Status: Phase 5 — Synthesis Complete
 
 - [x] FastAPI skeleton
 - [x] Config via pydantic-settings
@@ -14,7 +14,7 @@ Full spec: see `DocuGraph_AI_Master_Build_Prompt.md`.
 - [x] Ingestion pipeline (Phase 2): PDF parsing, chunking, extraction, confidence scoring, `POST /ingest`
 - [x] Neo4j/Qdrant indexing (Phase 3), metadata, document stats, and connectivity health
 - [x] Hybrid query (Phase 4): vector search, safe graph search, query planning, and fusion
-- [ ] Synthesis + citations (Phase 5)
+- [x] Synthesis + citations (Phase 5): answer generation, citation validation, page lookup, and confidence
 - [ ] Frontend (Phase 6)
 
 ## Local dev
@@ -95,8 +95,11 @@ curl -X POST http://localhost:8000/query \
 ```
 
 The response contains vector results, graph relationship results, and fused
-ranked chunks. Graph retrieval uses fixed parameterized Cypher templates; user
-input is never executed as Cypher.
+ranked chunks. It also contains an answer, validated citations with page
+numbers, synthesis provider, citation coverage, and confidence. Graph retrieval
+uses fixed parameterized Cypher templates; user input is never executed as
+Cypher. If LLM providers are unavailable, the response uses the deterministic
+fallback answer generator.
 
 Neo4j browser: http://localhost:7474 (user: `neo4j`, password: whatever you set in `.env`)
 Qdrant dashboard: http://localhost:6333/dashboard

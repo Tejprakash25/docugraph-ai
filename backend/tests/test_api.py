@@ -2,8 +2,15 @@ import fitz
 from fastapi.testclient import TestClient
 
 from main import app
-from api.routes import get_indexing_service, get_ingestion_service, get_query_service
+from api.routes import (
+    _public_query_result,
+    get_indexing_service,
+    get_ingestion_service,
+    get_query_service,
+    get_synthesis_service,
+)
 from services.ingest import PdfIngestionService
+from services.synthesis import SynthesisService
 
 
 app.dependency_overrides[get_ingestion_service] = lambda: PdfIngestionService()
@@ -104,6 +111,7 @@ def test_query_endpoint_returns_hybrid_contract() -> None:
             }
 
     app.dependency_overrides[get_query_service] = lambda: FakeQuery()
+    app.dependency_overrides[get_synthesis_service] = lambda: SynthesisService(providers=[])
     client = TestClient(app)
     response = client.post("/query", json={"query": "Who signed the contract?"})
 
@@ -111,6 +119,7 @@ def test_query_endpoint_returns_hybrid_contract() -> None:
     assert response.json()["status"] == "success"
     assert response.json()["query_plan"]["translator"] == "safe_parameterized_template"
     app.dependency_overrides.pop(get_query_service, None)
+    app.dependency_overrides.pop(get_synthesis_service, None)
 
 
 def test_query_endpoint_rejects_path_traversal_document_id() -> None:
@@ -119,3 +128,20 @@ def test_query_endpoint_rejects_path_traversal_document_id() -> None:
 
     assert response.status_code == 422
     assert response.json()["status"] == "error"
+
+
+def test_public_query_result_does_not_expose_full_chunk_text() -> None:
+    result = _public_query_result(
+        {
+            "query": "find it",
+            "vector_results": [{"chunk_id": "chunk_1", "text": "x" * 2000, "score": 0.9}],
+            "graph_results": [{"chunk_ids": ["chunk_1"], "evidence": "y" * 2000, "score": 0.8}],
+            "fused_results": [{"chunk_id": "chunk_1", "text": "z" * 2000, "score": 0.9}],
+            "query_plan": {},
+        }
+    )
+
+    assert "text" not in result["vector_results"][0]
+    assert "text_preview" not in result["vector_results"][0]
+    assert "evidence" not in result["graph_results"][0]
+    assert len(result["graph_results"][0]["evidence_preview"]) == 240

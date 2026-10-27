@@ -12,6 +12,7 @@ from services.ingest import IngestionError, PdfIngestionService
 from services.indexing import IndexingService
 from services.neo4j_handler import DocumentNotFoundError
 from services.query import HybridQueryService
+from services.synthesis import SynthesisService
 
 router = APIRouter()
 _DOCUMENT_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
@@ -29,6 +30,30 @@ def get_ingestion_service() -> PdfIngestionService:
 @lru_cache(maxsize=1)
 def get_query_service() -> HybridQueryService:
     return HybridQueryService()
+
+
+@lru_cache(maxsize=1)
+def get_synthesis_service() -> SynthesisService:
+    return SynthesisService()
+
+
+def _public_query_result(retrieval: dict) -> dict:
+    """Minimize document exposure while preserving UI metadata and ranking."""
+    def compact(row: dict, *, include_text_preview: bool = True) -> dict:
+        result = {key: value for key, value in row.items() if key not in {"text", "evidence"}}
+        if include_text_preview and row.get("text"):
+            result["text_preview"] = str(row["text"]).strip()[:240]
+        if row.get("evidence"):
+            result["evidence_preview"] = str(row["evidence"]).strip()[:240]
+        return result
+
+    return {
+        "query": retrieval.get("query", ""),
+        "vector_results": [compact(row, include_text_preview=False) for row in retrieval.get("vector_results", [])],
+        "graph_results": [compact(row, include_text_preview=False) for row in retrieval.get("graph_results", [])],
+        "fused_results": [compact(row, include_text_preview=False) for row in retrieval.get("fused_results", [])],
+        "query_plan": retrieval.get("query_plan", {}),
+    }
 
 
 @router.post(
@@ -106,12 +131,23 @@ async def document_stats(
 async def query_documents(
     request: QueryRequest,
     query_service: HybridQueryService = Depends(get_query_service),
+    synthesis_service: SynthesisService = Depends(get_synthesis_service),
 ) -> QueryResponse:
-    result = await query_service.search(
+    retrieval = await query_service.search(
         request.query,
         document_id=request.document_id,
         top_k=request.top_k,
         graph_limit=request.graph_limit,
         max_hops=request.max_hops,
     )
-    return QueryResponse.model_validate(result)
+    synthesis = await synthesis_service.synthesize(request.query, retrieval)
+    return QueryResponse.model_validate(
+        {
+            **_public_query_result(retrieval),
+            "answer": synthesis.answer,
+            "citations": [citation.__dict__ for citation in synthesis.citations],
+            "confidence": synthesis.confidence,
+            "synthesis_provider": synthesis.provider,
+            "citation_coverage": synthesis.citation_coverage,
+        }
+    )

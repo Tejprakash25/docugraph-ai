@@ -44,6 +44,11 @@ class QueryRequest(BaseModel):
 class QueryResponse(BaseModel):
     status: str = "success"
     query: str
+    answer: str = ""
+    citations: list[dict] = Field(default_factory=list)
+    confidence: float = Field(default=0.0, ge=0, le=1)
+    synthesis_provider: str = "fallback"
+    citation_coverage: float = Field(default=0.0, ge=0, le=1)
     vector_results: list[dict]
     graph_results: list[dict]
     fused_results: list[dict]

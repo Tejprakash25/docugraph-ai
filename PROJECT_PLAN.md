@@ -40,12 +40,16 @@ degraded-service health reporting.
 Implemented with bounded Qdrant retrieval, parameterized Neo4j graph search,
 safe natural-language query planning, and weighted vector/graph fusion.
 
-## Phase 5: Synthesis
+## Phase 5 ✅ DONE: Synthesis
 
 - LLM-generated answers
 - `[chunk_id]` citation parsing
 - Page lookup for citations
 - Confidence annotation
+
+Implemented with Groq → Gemini → deterministic fallback synthesis, strict
+retrieved-chunk citation allowlisting, page metadata resolution, invalid
+citation removal, and auditable confidence/citation-coverage scores.
 
 ## Phase 6: Frontend
 
@@ -66,4 +70,4 @@ safe natural-language query planning, and weighted vector/graph fusion.
 
 ## Current Status
 
-Phases 1, 2, 3, and 4 are complete. Phase 5 — answer synthesis and citations — is next.
+Phases 1, 2, 3, 4, and 5 are complete. Phase 6 — frontend — is next.
