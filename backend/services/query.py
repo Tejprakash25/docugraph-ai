@@ -78,7 +78,7 @@ class SafeCypherTranslator:
                 "entity_names": candidates,
                 "document_id": document_id,
                 "limit": max(1, min(limit, 50)),
-                "max_hops": max(1, min(max_hops, 2)),
+                "max_hops": max(1, min(max_hops, 3)),
             },
             entity_names=candidates,
             confidence=0.9 if quoted else 0.75,

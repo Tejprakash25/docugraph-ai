@@ -38,7 +38,7 @@ class QueryRequest(BaseModel):
     document_id: str | None = Field(default=None, min_length=1, max_length=128, pattern=r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
     top_k: int = Field(default=8, ge=1, le=50)
     graph_limit: int = Field(default=20, ge=1, le=50)
-    max_hops: int = Field(default=2, ge=1, le=2)
+    max_hops: int = Field(default=2, ge=1, le=3)
 
 
 class QueryResponse(BaseModel):

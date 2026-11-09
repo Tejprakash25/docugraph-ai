@@ -1,5 +1,9 @@
 import asyncio
 
+import pytest
+from pydantic import ValidationError
+
+from api.models import QueryRequest
 from services.embedding import EmbeddingService
 from services.query import HybridQueryService, SafeCypherTranslator
 
@@ -53,6 +57,21 @@ def test_translator_returns_fixed_parameterized_plan() -> None:
     assert "MATCH" not in plan.parameters["entity_names"]
 
 
+def test_query_max_hops_allows_three_and_translator_caps_at_three() -> None:
+    assert QueryRequest(query="find relationships").max_hops == 2
+    assert QueryRequest(query="find relationships", max_hops=3).max_hops == 3
+    with pytest.raises(ValidationError):
+        QueryRequest(query="find relationships", max_hops=4)
+
+    plan = SafeCypherTranslator().translate(
+        "find relationships",
+        document_id=None,
+        limit=20,
+        max_hops=99,
+    )
+    assert plan.parameters["max_hops"] == 3
+
+
 def test_hybrid_search_fuses_vector_and_graph_scores() -> None:
     service = HybridQueryService(
         qdrant=FakeQdrant(),
@@ -66,4 +85,3 @@ def test_hybrid_search_fuses_vector_and_graph_scores() -> None:
     assert len(result["graph_results"]) == 1
     assert result["fused_results"][0]["chunk_id"] == "contract_001_chunk_1"
     assert result["fused_results"][0]["score"] > 0
-

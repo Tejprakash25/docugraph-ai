@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterable
 from typing import Any
 
@@ -115,8 +116,14 @@ class Neo4jStore:
         entities: Iterable[dict[str, Any]],
         relationships: Iterable[dict[str, Any]],
     ) -> None:
+        entity_rows = list(entities)
+        entity_types: dict[str, set[str | None]] = {}
+        for entity in entity_rows:
+            entity_type = str(entity.get("type") or "").strip() or None
+            entity_types.setdefault(entity["name"], set()).add(entity_type)
+
         with self._get_driver().session() as session:
-            for entity in entities:
+            for entity in entity_rows:
                 session.run(
                     """
                     MERGE (e:Entity {type: $type, name: $name})
@@ -129,12 +136,31 @@ class Neo4jStore:
                     """,
                     **entity,
                 ).consume()
+            skipped_relationships = 0
             for relationship in relationships:
+                # shortcut: ambiguous same-name entities are skipped; upgrade by adding types to Relationship in extraction.
+                source_types = entity_types.get(relationship["source"], set())
+                target_types = entity_types.get(relationship["target"], set())
+                if (
+                    len(source_types) != 1
+                    or len(target_types) != 1
+                    or None in source_types
+                    or None in target_types
+                ):
+                    skipped_relationships += 1
+                    continue
+                source_type = next(iter(source_types))
+                target_type = next(iter(target_types))
                 session.run(
                     """
-                    MATCH (source:Entity {name: $source})
-                    MATCH (target:Entity {name: $target})
-                    WITH source, target LIMIT 1
+                    MATCH (source:Entity {name: $source, type: $source_type})
+                    MATCH (target:Entity {name: $target, type: $target_type})
+                    WHERE EXISTS {
+                        MATCH (:Chunk {document_id: $document_id})-[:MENTIONS]->(source)
+                    }
+                    AND EXISTS {
+                        MATCH (:Chunk {document_id: $document_id})-[:MENTIONS]->(target)
+                    }
                     MERGE (source)-[r:RELATED {document_id: $document_id,
                                                predicate: $predicate}]->(target)
                     SET r.confidence = $confidence,
@@ -142,8 +168,17 @@ class Neo4jStore:
                         r.source_chunk_ids = $source_chunk_ids,
                         r.source_pages = $source_pages
                     """,
-                    **relationship,
+                    **{
+                        **relationship,
+                        "source_type": source_type,
+                        "target_type": target_type,
+                    },
                 ).consume()
+        if skipped_relationships:
+            logging.getLogger(__name__).warning(
+                "Skipped %d relationships with missing or ambiguous entity types",
+                skipped_relationships,
+            )
 
     def get_document_stats(self, document_id: str) -> dict[str, Any]:
         with self._get_driver().session() as session:
@@ -199,7 +234,7 @@ class Neo4jStore:
         if not entity_names:
             return []
         safe_limit = max(1, min(limit, 50))
-        safe_hops = max(1, min(max_hops, 2))
+        safe_hops = max(1, min(max_hops, 3))
         query = f"""
         MATCH path=(seed:Entity)-[:RELATED*1..{safe_hops}]-(target:Entity)
         WHERE any(term IN $entity_names WHERE
