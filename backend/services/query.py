@@ -6,9 +6,11 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
+from config import settings
 from services.embedding import EmbeddingService
 from services.neo4j_handler import Neo4jStore
 from services.qdrant_handler import QdrantStore
+from services.rethinking import rethink_and_rank
 
 
 _WORD = re.compile(r"[A-Za-z][A-Za-z0-9_-]{1,63}")
@@ -117,7 +119,14 @@ class HybridQueryService:
         graph_rows = await self._search_graph(plan)
         vector_hits = [VectorHit(**row) for row in vector_rows]
         graph_hits = [GraphHit(**row) for row in graph_rows]
-        fused = self._fuse(vector_hits, graph_hits, top_k)
+        fused = await rethink_and_rank(
+            vector,
+            vector_hits,
+            graph_hits,
+            settings,
+            top_k=top_k,
+            embedder=self.embedder,
+        )
         missing_text_ids = list(dict.fromkeys(
             row["chunk_id"] for row in fused if not row.get("text")
         ))
@@ -185,36 +194,3 @@ class HybridQueryService:
             )
         except Exception:
             return []
-
-    @staticmethod
-    def _fuse(vector_hits: list[VectorHit], graph_hits: list[GraphHit], top_k: int) -> list[dict[str, Any]]:
-        fused: dict[str, dict[str, Any]] = {}
-        for hit in vector_hits:
-            fused[hit.chunk_id] = {
-                "chunk_id": hit.chunk_id,
-                "document_id": hit.document_id,
-                "page_number": hit.page_number,
-                "page_numbers": hit.page_numbers,
-                "text": hit.text,
-                "vector_score": round(hit.score, 4),
-                "graph_score": 0.0,
-                "score": round(0.7 * hit.score, 4),
-            }
-        for hit in graph_hits:
-            for chunk_id in hit.chunk_ids:
-                item = fused.setdefault(
-                    chunk_id,
-                    {
-                        "chunk_id": chunk_id,
-                        "document_id": "",
-                        "page_number": 0,
-                        "page_numbers": [],
-                        "text": "",
-                        "vector_score": 0.0,
-                        "graph_score": 0.0,
-                        "score": 0.0,
-                    },
-                )
-                item["graph_score"] = max(item["graph_score"], hit.score)
-                item["score"] = round(0.7 * item["vector_score"] + 0.3 * item["graph_score"], 4)
-        return sorted(fused.values(), key=lambda item: item["score"], reverse=True)[: max(1, min(top_k, 50))]

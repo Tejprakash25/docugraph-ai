@@ -66,12 +66,28 @@ class GraphOnlyNeo4j:
                 "chunk_ids": ["chunk-1"],
                 "pages": [],
                 "score": 0.8,
+                "path": [
+                    {
+                        "source": "Jordan",
+                        "source_type": "Person",
+                        "predicate": "works_for",
+                        "target": "Acme",
+                        "target_type": "Organization",
+                        "confidence": 0.9,
+                    }
+                ],
+                "hops": 1,
             }
         ]
 
     def get_chunks(self, chunk_ids):
         self.requested_chunk_ids = chunk_ids
         return self.chunks
+
+
+class MatchingEmbedder:
+    async def embed_texts(self, texts):
+        return [[1.0, 0.0] for _ in texts]
 
 
 def test_translator_returns_fixed_parameterized_plan() -> None:
@@ -133,7 +149,7 @@ def test_graph_only_hit_is_hydrated_with_chunk_text_and_page() -> None:
     service = HybridQueryService(
         qdrant=EmptyQdrant(),
         neo4j=neo4j,
-        embedder=EmbeddingService(force_fallback=True),
+        embedder=MatchingEmbedder(),
     )
 
     result = asyncio.run(service.search("Who is Jordan?"))
@@ -149,7 +165,7 @@ def test_graph_only_hit_with_missing_chunk_is_dropped() -> None:
     service = HybridQueryService(
         qdrant=EmptyQdrant(),
         neo4j=neo4j,
-        embedder=EmbeddingService(force_fallback=True),
+        embedder=MatchingEmbedder(),
     )
 
     result = asyncio.run(service.search("Who is Jordan?"))

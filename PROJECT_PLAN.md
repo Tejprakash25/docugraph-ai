@@ -38,7 +38,8 @@ degraded-service health reporting.
 - Search fusion and ranking
 
 Implemented with bounded Qdrant retrieval, parameterized Neo4j graph search,
-safe natural-language query planning, and weighted vector/graph fusion.
+safe natural-language query planning, weighted vector/graph fusion, and RRP-inspired
+semantic and structural path rethinking before provenance-chunk ranking.
 
 ## Phase 5 ✅ DONE: Synthesis
 

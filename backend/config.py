@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     embedding_model: str = "all-MiniLM-L6-v2"
     embedding_dimension: int = 384
     embedding_allow_fallback: bool = True
+    rethink_lambda_semantic: float = 0.6
+    rethink_lambda_structural: float = 0.4
+    rethink_threshold: float = 0.35
+    rethink_max_paths: int = 10
 
     # Neo4j (used starting Phase 3 — graph indexing)
     neo4j_uri: str = "bolt://neo4j:7687"
