@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from services.embedding import EmbeddingService
@@ -52,6 +52,8 @@ class GraphHit:
     chunk_ids: list[str]
     pages: list[Any]
     score: float
+    path: list[dict[str, Any]] = field(default_factory=list)
+    hops: int = 0
 
 
 class SafeCypherTranslator:
@@ -116,6 +118,36 @@ class HybridQueryService:
         vector_hits = [VectorHit(**row) for row in vector_rows]
         graph_hits = [GraphHit(**row) for row in graph_rows]
         fused = self._fuse(vector_hits, graph_hits, top_k)
+        missing_text_ids = list(dict.fromkeys(
+            row["chunk_id"] for row in fused if not row.get("text")
+        ))
+        if missing_text_ids:
+            import asyncio
+
+            chunk_rows = await asyncio.to_thread(self.neo4j.get_chunks, missing_text_ids)
+            chunks_by_id = {row["chunk_id"]: row for row in chunk_rows}
+            hydrated = []
+            for row in fused:
+                if row.get("text"):
+                    hydrated.append(row)
+                    continue
+                chunk = chunks_by_id.get(row["chunk_id"])
+                if (
+                    chunk is None
+                    or not str(chunk.get("text") or "").strip()
+                    or not chunk.get("page_number")
+                ):
+                    continue
+                hydrated.append(
+                    {
+                        **row,
+                        "document_id": chunk["document_id"],
+                        "page_number": chunk["page_number"],
+                        "page_numbers": chunk.get("page_numbers") or [],
+                        "text": chunk["text"],
+                    }
+                )
+            fused = hydrated
         return {
             "query": query_text,
             "vector_results": [hit.__dict__ for hit in vector_hits],

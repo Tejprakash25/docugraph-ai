@@ -43,6 +43,37 @@ class FakeNeo4j:
         ]
 
 
+class EmptyQdrant:
+    def search_chunks(self, **kwargs):
+        return []
+
+
+class GraphOnlyNeo4j:
+    def __init__(self, chunks):
+        self.chunks = chunks
+        self.requested_chunk_ids = None
+
+    def search_graph(self, **kwargs):
+        return [
+            {
+                "source": "Jordan",
+                "source_type": "Person",
+                "predicate": "works_for",
+                "target": "Acme",
+                "target_type": "Organization",
+                "confidence": 0.8,
+                "evidence": "Jordan works for Acme",
+                "chunk_ids": ["chunk-1"],
+                "pages": [],
+                "score": 0.8,
+            }
+        ]
+
+    def get_chunks(self, chunk_ids):
+        self.requested_chunk_ids = chunk_ids
+        return self.chunks
+
+
 def test_translator_returns_fixed_parameterized_plan() -> None:
     plan = SafeCypherTranslator().translate(
         'What is the relationship between "Alice" and Acme?',
@@ -85,3 +116,43 @@ def test_hybrid_search_fuses_vector_and_graph_scores() -> None:
     assert len(result["graph_results"]) == 1
     assert result["fused_results"][0]["chunk_id"] == "contract_001_chunk_1"
     assert result["fused_results"][0]["score"] > 0
+
+
+def test_graph_only_hit_is_hydrated_with_chunk_text_and_page() -> None:
+    neo4j = GraphOnlyNeo4j(
+        [
+            {
+                "chunk_id": "chunk-1",
+                "document_id": "doc-1",
+                "page_number": 4,
+                "page_numbers": [4, 5],
+                "text": "Jordan works for Acme.",
+            }
+        ]
+    )
+    service = HybridQueryService(
+        qdrant=EmptyQdrant(),
+        neo4j=neo4j,
+        embedder=EmbeddingService(force_fallback=True),
+    )
+
+    result = asyncio.run(service.search("Who is Jordan?"))
+
+    assert neo4j.requested_chunk_ids == ["chunk-1"]
+    assert result["fused_results"][0]["text"] == "Jordan works for Acme."
+    assert result["fused_results"][0]["page_number"] == 4
+    assert result["fused_results"][0]["page_numbers"] == [4, 5]
+
+
+def test_graph_only_hit_with_missing_chunk_is_dropped() -> None:
+    neo4j = GraphOnlyNeo4j([])
+    service = HybridQueryService(
+        qdrant=EmptyQdrant(),
+        neo4j=neo4j,
+        embedder=EmbeddingService(force_fallback=True),
+    )
+
+    result = asyncio.run(service.search("Who is Jordan?"))
+
+    assert neo4j.requested_chunk_ids == ["chunk-1"]
+    assert result["fused_results"] == []

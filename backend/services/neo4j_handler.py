@@ -222,6 +222,25 @@ class Neo4jStore:
             },
         }
 
+    def get_chunks(self, chunk_ids: list[str]) -> list[dict[str, Any]]:
+        """Return persisted chunk fields for a bounded set of chunk identifiers."""
+        safe_chunk_ids = list(dict.fromkeys(chunk_ids))[:50]
+        if not safe_chunk_ids:
+            return []
+        with self._get_driver().session() as session:
+            return session.run(
+                """
+                MATCH (c:Chunk)
+                WHERE c.chunk_id IN $chunk_ids
+                RETURN c.chunk_id AS chunk_id,
+                       c.document_id AS document_id,
+                       c.page_number AS page_number,
+                       c.page_numbers AS page_numbers,
+                       c.text AS text
+                """,
+                chunk_ids=safe_chunk_ids,
+            ).data()
+
     def search_graph(
         self,
         *,
@@ -236,13 +255,27 @@ class Neo4jStore:
         safe_limit = max(1, min(limit, 50))
         safe_hops = max(1, min(max_hops, 3))
         query = f"""
-        MATCH path=(seed:Entity)-[:RELATED*1..{safe_hops}]-(target:Entity)
+        MATCH graph_path=(seed:Entity)-[:RELATED*1..{safe_hops}]-(target:Entity)
         WHERE any(term IN $entity_names WHERE
             toLower(seed.name) CONTAINS toLower(term) OR
             toLower(target.name) CONTAINS toLower(term))
-        WITH seed, target, relationships(path)[0] AS rel
+        WITH seed, target, graph_path,
+             relationships(graph_path)[0] AS rel,
+             [i IN range(0, size(relationships(graph_path)) - 1) | {{
+                 source: nodes(graph_path)[i].name,
+                 source_type: nodes(graph_path)[i].type,
+                 predicate: relationships(graph_path)[i].predicate,
+                 target: nodes(graph_path)[i + 1].name,
+                 target_type: nodes(graph_path)[i + 1].type,
+                 confidence: relationships(graph_path)[i].confidence
+             }}] AS ordered_path,
+             reduce(provenance = [], path_rel IN relationships(graph_path) |
+                 provenance + coalesce(path_rel.source_chunk_ids, [])) AS provenance_chunk_ids
         OPTIONAL MATCH (c:Chunk)-[:MENTIONS]->(seed)
         WHERE $document_id IS NULL OR c.document_id = $document_id
+        WITH seed, target, graph_path, rel, ordered_path, provenance_chunk_ids,
+             collect(DISTINCT c.chunk_id) AS mention_chunk_ids,
+             collect(DISTINCT c.page_numbers)[..20] AS pages
         RETURN seed.name AS source,
                seed.type AS source_type,
                rel.predicate AS predicate,
@@ -250,8 +283,12 @@ class Neo4jStore:
                target.type AS target_type,
                rel.confidence AS confidence,
                rel.evidence AS evidence,
-               collect(DISTINCT c.chunk_id)[..20] AS chunk_ids,
-               collect(DISTINCT c.page_numbers)[..20] AS pages
+               ordered_path AS path,
+               size(relationships(graph_path)) AS hops,
+               reduce(ids = [], chunk_id IN (provenance_chunk_ids + mention_chunk_ids) |
+                   CASE WHEN chunk_id IS NULL OR chunk_id IN ids THEN ids
+                        ELSE ids + chunk_id END)[..20] AS chunk_ids,
+               pages
         ORDER BY confidence DESC
         LIMIT $limit
         """
@@ -274,6 +311,8 @@ class Neo4jStore:
                 "chunk_ids": [str(value) for value in (row.get("chunk_ids") or []) if value],
                 "pages": row.get("pages") or [],
                 "score": max(0.0, min(float(row.get("confidence") or 0.0), 1.0)),
+                "path": row.get("path") or [],
+                "hops": int(row.get("hops") or 0),
             }
             for row in rows
         ]

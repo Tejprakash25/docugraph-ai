@@ -4,16 +4,20 @@ from services.neo4j_handler import Neo4jStore
 
 
 class FakeResult:
+    def __init__(self, rows=None):
+        self.rows = rows or []
+
     def consume(self):
         return None
 
     def data(self):
-        return []
+        return self.rows
 
 
 class FakeSession:
-    def __init__(self) -> None:
+    def __init__(self, rows=None) -> None:
         self.calls = []
+        self.rows = rows or []
 
     def __enter__(self):
         return self
@@ -23,12 +27,12 @@ class FakeSession:
 
     def run(self, query, **parameters):
         self.calls.append((query, parameters))
-        return FakeResult()
+        return FakeResult(self.rows)
 
 
 class FakeDriver:
-    def __init__(self) -> None:
-        self.fake_session = FakeSession()
+    def __init__(self, rows=None) -> None:
+        self.fake_session = FakeSession(rows)
 
     def session(self):
         return self.fake_session
@@ -109,3 +113,67 @@ def test_search_graph_caps_hops_at_three() -> None:
 
     query, _ = driver.fake_session.calls[-1]
     assert "[:RELATED*1..3]" in query
+
+
+def test_get_chunks_uses_one_parameterized_query_and_caps_ids_at_50() -> None:
+    store = Neo4jStore()
+    driver = FakeDriver()
+    store._driver = driver
+
+    store.get_chunks([f"chunk-{index}" for index in range(60)])
+
+    assert len(driver.fake_session.calls) == 1
+    query, parameters = driver.fake_session.calls[0]
+    assert "WHERE c.chunk_id IN $chunk_ids" in query
+    assert len(parameters["chunk_ids"]) == 50
+
+
+def test_search_graph_returns_ordered_multi_hop_path() -> None:
+    path = [
+        {
+            "source": "Jordan",
+            "source_type": "Person",
+            "predicate": "works_for",
+            "target": "Acme",
+            "target_type": "Organization",
+            "confidence": 0.9,
+        },
+        {
+            "source": "Acme",
+            "source_type": "Organization",
+            "predicate": "owns",
+            "target": "Widget",
+            "target_type": "Product",
+            "confidence": 0.8,
+        },
+    ]
+    store = Neo4jStore()
+    driver = FakeDriver(
+        [
+            {
+                "source": "Jordan",
+                "source_type": "Person",
+                "predicate": "works_for",
+                "target": "Acme",
+                "target_type": "Organization",
+                "confidence": 0.9,
+                "evidence": None,
+                "chunk_ids": ["chunk-1"],
+                "pages": [[1]],
+                "path": path,
+                "hops": 2,
+            }
+        ]
+    )
+    store._driver = driver
+
+    result = store.search_graph(entity_names=["Jordan"])
+
+    query, _ = driver.fake_session.calls[-1]
+    assert "range(0, size(relationships(graph_path)) - 1)" in query
+    assert "path_rel.source_chunk_ids" in query
+    assert "provenance_chunk_ids + mention_chunk_ids" in query
+    assert "END)[..20] AS chunk_ids" in query
+    assert result[0]["path"] == path
+    assert [hop["source"] for hop in result[0]["path"]] == ["Jordan", "Acme"]
+    assert result[0]["hops"] == 2
