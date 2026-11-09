@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import logging
 from dataclasses import dataclass
 from typing import Any, Protocol
 
@@ -12,6 +13,41 @@ from config import settings
 _CITATION = re.compile(r"\[([A-Za-z0-9][A-Za-z0-9_-]{0,127})\]")
 _WHITESPACE = re.compile(r"\s+")
 _MAX_CONTEXT_CHARS = 18_000
+_logger = logging.getLogger(__name__)
+_ANSWER_STOP_WORDS = {
+    "a", "an", "and", "are", "does", "for", "how", "in", "is", "of", "on",
+    "the", "to", "what", "when", "where", "which", "who", "with",
+}
+_NUMBER_WORDS = {
+    "one": 1,
+    "two": 2,
+    "three": 3,
+    "four": 4,
+    "five": 5,
+    "six": 6,
+    "seven": 7,
+    "eight": 8,
+    "nine": 9,
+    "ten": 10,
+    "eleven": 11,
+    "twelve": 12,
+    "thirteen": 13,
+    "fourteen": 14,
+    "fifteen": 15,
+    "sixteen": 16,
+    "seventeen": 17,
+    "eighteen": 18,
+    "nineteen": 19,
+    "twenty": 20,
+}
+
+
+def _answer_terms(value: str) -> set[str]:
+    terms = set(re.findall(r"[A-Za-z0-9]+", value.casefold())) - _ANSWER_STOP_WORDS
+    return {
+        "month" if term == "monthly" else "fee" if term == "fees" else term
+        for term in terms
+    }
 
 
 @dataclass(frozen=True)
@@ -176,17 +212,139 @@ class GeminiAnswerProvider:
 class DeterministicAnswerProvider:
     name = "fallback"
 
+    # shortcut: handles service-credit percentages with common number words; extend for other calculation formats.
+    @staticmethod
+    def _service_credit_answer(question: str, context: str) -> str | None:
+        question_lower = question.casefold()
+        if not (
+            "service credit" in question_lower
+            and "monthly operations fee" in question_lower
+            and re.search(r"\b(?:how much|amount|calculate|calculation)\b", question_lower)
+        ):
+            return None
+
+        evidence: list[tuple[str, str]] = []
+        for line in context.splitlines():
+            match = re.match(
+                r"\[([A-Za-z0-9][A-Za-z0-9_-]{0,127})\]\s+pages=\[[^\]]*\]:\s*(.*)",
+                line,
+            )
+            if match:
+                evidence.append((match.group(1), match.group(2)))
+
+        rate_pattern = re.compile(
+            r"\b(?P<rate>\d+(?:\.\d+)?|[a-z]+)\s*(?:%|percent)\s+of\s+"
+            r"(?:the\s+)?monthly\s+operations\s+fee\b",
+            re.IGNORECASE,
+        )
+        fee_pattern = re.compile(
+            r"\bmonthly\s+operations\s+fee\s+of\s+(?P<currency>USD\s*|\$)\s*"
+            r"(?P<amount>[\d,]+(?:\.\d{1,2})?)\b",
+            re.IGNORECASE,
+        )
+        cap_pattern = re.compile(
+            r"\bcloud\s+costs\s+capped\s+at\s+(?P<currency>USD\s*|\$)\s*"
+            r"(?P<amount>[\d,]+(?:\.\d{1,2})?)\s+per\s+month\b",
+            re.IGNORECASE,
+        )
+
+        rate: float | None = None
+        fee: float | None = None
+        cap: float | None = None
+        citation_ids: list[str] = []
+        threshold: float | None = None
+        threshold_chunk_id: str | None = None
+        for chunk_id, text in evidence:
+            rate_match = rate_pattern.search(text)
+            if rate is None and rate_match:
+                rate_value = rate_match.group("rate").casefold()
+                rate = float(rate_value) if re.fullmatch(r"\d+(?:\.\d+)?", rate_value) else _NUMBER_WORDS.get(rate_value)
+                citation_ids.append(chunk_id)
+
+            fee_match = fee_pattern.search(text)
+            if fee is None and fee_match:
+                fee = float(fee_match.group("amount").replace(",", ""))
+                citation_ids.append(chunk_id)
+
+            cap_match = cap_pattern.search(text)
+            if cap is None and cap_match:
+                cap = float(cap_match.group("amount").replace(",", ""))
+                citation_ids.append(chunk_id)
+
+            threshold_match = re.search(
+                r"\bavailability\s+falls\s+below\s+(\d+(?:\.\d+)?)\s*%",
+                text,
+                re.IGNORECASE,
+            )
+            if threshold is None and threshold_match:
+                threshold = float(threshold_match.group(1))
+                threshold_chunk_id = chunk_id
+
+        if rate is None or fee is None:
+            return "I could not calculate the service credit because the retrieved evidence is missing the credit rate or monthly operations fee."
+        if re.search(r"cloud[\s-]+cost[\s-]+cap", question_lower) and cap is None:
+            return "I could not determine whether the cloud-cost cap is separate because the retrieved evidence does not state that cap."
+
+        citations = " ".join(f"[{chunk_id}]" for chunk_id in dict.fromkeys(citation_ids))
+        credit = fee * rate / 100
+        actual_match = re.search(
+            r"\bavailability\s+(?:is\s+)?(\d+(?:\.\d+)?)\s*%",
+            question,
+            re.IGNORECASE,
+        )
+        eligibility = ""
+        if threshold is not None and actual_match:
+            actual = float(actual_match.group(1))
+            if "controlled failure" in question_lower and actual >= threshold:
+                if threshold_chunk_id:
+                    citation_ids.append(threshold_chunk_id)
+                return (
+                    f"At {actual:g}% availability, the contract's service-credit threshold is below "
+                    f"{threshold:g}%, so the threshold is not met. "
+                    f"[{threshold_chunk_id}]"
+                    if threshold_chunk_id
+                    else "The retrieved evidence does not establish that the service-credit threshold is met."
+                )
+            if actual < threshold and "controlled failure" in question_lower:
+                if threshold_chunk_id:
+                    citation_ids.append(threshold_chunk_id)
+                eligibility = (
+                    f"At {actual:g}% availability, below the {threshold:g}% threshold, "
+                )
+
+        citations = " ".join(f"[{chunk_id}]" for chunk_id in dict.fromkeys(citation_ids))
+        answer = (
+            f"{eligibility}the potential service credit is {rate:g}%: "
+            f"{rate:g}% of the USD {fee:,.2f} monthly operations fee is USD {credit:,.2f}."
+        )
+        if cap is not None and re.search(r"cloud[\s-]+cost[\s-]+cap", question_lower):
+            answer += f" The USD {cap:,.2f} monthly cloud-cost cap is separate and is not part of the calculation."
+        return f"{answer} {citations}".strip()
+
     async def generate(self, question: str, context: str) -> str:
-        del question
         if not context:
             return "I could not find supporting evidence in the indexed documents."
-        lines = context.splitlines()
-        evidence_lines = [line for line in lines if line.startswith("[")]
-        if not evidence_lines:
+        service_credit_answer = self._service_credit_answer(question, context)
+        if service_credit_answer is not None:
+            return service_credit_answer
+        question_terms = _answer_terms(question)
+        candidates: list[tuple[int, str, str]] = []
+        for line in context.splitlines():
+            match = re.match(r"\[([A-Za-z0-9][A-Za-z0-9_-]{0,127})\].*?:\s*(.*)", line)
+            if not match:
+                continue
+            chunk_id, evidence = match.groups()
+            for sentence in re.split(r"(?<=[.!?])\s+", evidence):
+                sentence = sentence.strip()
+                if sentence:
+                    overlap = len(question_terms & _answer_terms(sentence))
+                    candidates.append((overlap, sentence, chunk_id))
+        if not candidates:
             return "I found indexed evidence, but it was not available in a citable chunk."
-        # Keep the offline answer useful without echoing entire retrieved chunks.
-        snippet = _clean_text(evidence_lines[0], max_length=300)
-        return f"Based on the most relevant indexed evidence: {snippet}"
+        overlap, sentence, chunk_id = max(candidates, key=lambda item: item[0])
+        if overlap == 0:
+            return "I found supporting evidence but could not identify a concise answer."
+        return f"{_clean_text(sentence, max_length=320)} [{chunk_id}]"
 
 
 class SynthesisService:
@@ -210,7 +368,7 @@ class SynthesisService:
         seen: set[str] = set()
         for row in retrieval.get("fused_results", [])[:8]:
             chunk_id = str(row.get("chunk_id") or "")
-            text = _clean_text(row.get("text"), max_length=1800)
+            text = _clean_text(row.get("text"), max_length=3000)
             if not chunk_id or not text or chunk_id in seen:
                 continue
             seen.add(chunk_id)
@@ -281,7 +439,12 @@ class SynthesisService:
                     answer = candidate
                     provider_name = provider.name
                     break
-            except Exception:
+            except Exception as exc:
+                _logger.warning(
+                    "Answer provider %s failed (%s)",
+                    provider.name,
+                    type(exc).__name__,
+                )
                 continue
         if not answer:
             answer = self._deterministic_answer(question, retrieval) or await self.fallback.generate(question, context)
