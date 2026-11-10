@@ -1,0 +1,216 @@
+/* src/index.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #8DB9F0;
+  --color-secondary: #E9E8F8;
+  --color-accent: #F5B69E;
+  --color-ink: #101828;
+  --color-ink-secondary: #2C3E50;
+  --color-ink-light: #E9E8F8;
+  --font-heading: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --radius-sharp: 0px;
+  --radius-card: 8px;
+  --radius-button: 4px;
+  --shadow-glass: 0 4px 30px rgba(0, 0, 0, 0.1);
+  --blur-glass: blur(12px);
+
+  /* Functional alpha surfaces derived from the palette tokens */
+  --surface-glass-bg: rgba(233, 232, 248, 0.6);
+  --surface-glass-border: rgba(141, 185, 240, 0.3);
+  --surface-ink-subtle: rgba(16, 24, 40, 0.12);
+  --surface-ink-border: rgba(16, 24, 40, 0.2);
+  --surface-accent-border: rgba(245, 182, 158, 0.3);
+  --shadow-accent-glow: 0 0 18px rgba(245, 182, 158, 0.45);
+  --scanline-stripe: rgba(233, 232, 248, 0.03);
+  --scanline-ink-stripe: rgba(16, 24, 40, 0.03);
+  --ink-light-60: rgba(233, 232, 248, 0.6);
+  --ink-light-40: rgba(233, 232, 248, 0.4);
+}
+
+@layer base {
+  html {
+    font-family: var(--font-body);
+    color: var(--color-ink);
+    background-color: var(--color-secondary);
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background-color: var(--color-secondary);
+    color: var(--color-ink);
+    overflow-x: hidden;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading);
+    color: var(--color-ink);
+    letter-spacing: -0.03em;
+  }
+
+  h1 {
+    font-size: 2.5rem;
+    line-height: 1.1;
+    letter-spacing: -0.035em;
+    font-weight: 700;
+  }
+
+  h2 {
+    font-size: 2rem;
+    line-height: 1.15;
+    letter-spacing: -0.025em;
+    font-weight: 600;
+  }
+
+  h3 {
+    font-size: 1.5rem;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
+    font-weight: 600;
+  }
+
+  @media (min-width: 768px) {
+    h1 {
+      font-size: 3.5rem;
+    }
+    h2 {
+      font-size: 2.5rem;
+    }
+    h3 {
+      font-size: 1.75rem;
+    }
+  }
+
+  code,
+  pre {
+    font-family: var(--font-mono);
+    letter-spacing: 0.02em;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+}
+
+/* Subtle analog SVG grain overlay (2.5% opacity) */
+.grain-surface {
+  position: relative;
+}
+
+.grain-surface::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+/* Atmospheric directional washes (never 90deg horizontal) */
+@keyframes atmosphericShift {
+  0% {
+    background-position: 0% 0%;
+  }
+  50% {
+    background-position: 100% 100%;
+  }
+  100% {
+    background-position: 0% 0%;
+  }
+}
+
+.wash-atmospheric-135 {
+  background: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-secondary) 62%,
+    var(--color-accent) 100%
+  );
+  background-size: 200% 200%;
+  animation: atmosphericShift 9s ease-in-out infinite;
+}
+
+.wash-atmospheric-225 {
+  background: linear-gradient(
+    225deg,
+    var(--color-secondary) 0%,
+    var(--color-primary) 65%,
+    var(--color-accent) 100%
+  );
+  background-size: 200% 200%;
+  animation: atmosphericShift 8s ease-in-out infinite;
+}
+
+.wash-atmospheric-180 {
+  background: linear-gradient(
+    180deg,
+    var(--color-primary) 0%,
+    var(--color-secondary) 100%
+  );
+}
+
+/* Glassmorphism surfaces (used sparingly on floating cards and sticky nav) */
+.glass-panel {
+  background: var(--surface-glass-bg);
+  backdrop-filter: var(--blur-glass);
+  -webkit-backdrop-filter: var(--blur-glass);
+  border: 1px solid var(--surface-glass-border);
+}
+
+/* Retro-futuristic scan lines: 1px every 24px at 0.03 opacity */
+.scanlines-dark {
+  background-image: repeating-linear-gradient(
+    180deg,
+    var(--scanline-stripe) 0px,
+    var(--scanline-stripe) 1px,
+    transparent 1px,
+    transparent 24px
+  );
+}
+
+.scanlines-light {
+  background-image: repeating-linear-gradient(
+    180deg,
+    var(--scanline-ink-stripe) 0px,
+    var(--scanline-ink-stripe) 1px,
+    transparent 1px,
+    transparent 24px
+  );
+}
+
+/* 12-column architectural grid helper */
+.grid-12 {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 24px;
+}
+
+/* Motion accessibility compliance */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .wash-atmospheric-135,
+  .wash-atmospheric-225 {
+    animation: none !important;
+  }
+}
