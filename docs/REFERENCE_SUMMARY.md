@@ -1,13 +1,24 @@
 # DocuGraph AI — Reference Summary
 
-This summary records the project guidance read from:
+This summary records the project guidance across all document revisions.
+It preserves the original plan alongside every later revision so you can see
+exactly where the implementation diverged, expanded, or compromised.
 
-- [DocuGraph_AI_PRD_v1.1.pdf](./DocuGraph_AI_PRD_v1.1.pdf)
-- [DocuGraph_AI_SRS_v1.1.pdf](./DocuGraph_AI_SRS_v1.1.pdf)
+## Document inventory
 
-No application implementation has been started from these references.
+| Document | Version | Date | Purpose |
+|---|---|---|---|
+| [DocuGraph_AI_PRD_v1.1.pdf](./DocuGraph_AI_PRD_v1.1.pdf) | 1.1 | — | Original product vision and MVP scope |
+| [DocuGraph_AI_SRS_v1.1.pdf](./DocuGraph_AI_SRS_v1.1.pdf) | 1.1 | — | Original system requirements and quality gates |
+| [DocuGraph_AI_PRD_v1.2.md](./DocuGraph_AI_PRD_v1.2.md) | 1.2 | — | Refined PRD after Phases 1–4 implementation |
+| [DocuGraph_AI_SRS_v1.2.md](./DocuGraph_AI_SRS_v1.2.md) | 1.2 | — | Refined SRS after Phases 1–4 implementation |
+| [DocuGraph_AI_PRD_v1.3.md](./DocuGraph_AI_PRD_v1.3.md) | 1.3 | 2026-11-09 | Current PRD — adds RRP rethinking, retrieval hardening, known limitations |
+| [DocuGraph_AI_SRS_v1.3.md](./DocuGraph_AI_SRS_v1.3.md) | 1.3 | 2026-11-09 | Current SRS — adds 3-hop search, typed entity linking, rethinking spec, frontend contract |
 
-## Product direction
+Phases 1–5 of the backend are implemented and tested. Phase 6 (frontend) is in
+early boilerplate. Phase 7 (integration, benchmark, deployment) has not started.
+
+## Product direction (from v1.1, still valid)
 
 DocuGraph AI is intended to be an auditable document-intelligence system. Its answers should explain why they were produced and allow users to verify them against source chunks, page numbers, graph paths, and confidence scores.
 
