@@ -2231,7 +2231,7 @@
         max-height: 100%;
         overflow-y: auto;
         overscroll-behavior: contain;
-        padding: 0 clamp(24px, 4vw, 42px) clamp(24px, 4vw, 42px);
+        padding: clamp(24px, 4vw, 42px);
         background: transparent;
         opacity: 0;
         transform: translateY(100%);
@@ -2440,55 +2440,6 @@
     </main>
     <section class="feature-view" aria-live="polite" hidden>
       <article class="feature-panel modal-page" data-feature="evidence" data-ready hidden>
-        <header class="modal-header">
-          <div class="modal-header-waves" aria-hidden="true">
-            <svg class="modal-waves-svg" viewBox="0 0 2400 100" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="header-wave-ev-1" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stop-color="rgba(141, 185, 240, 0.45)" />
-                  <stop offset="40%" stop-color="rgba(70, 130, 200, 0.25)" />
-                  <stop offset="100%" stop-color="rgba(10, 20, 38, 0.08)" />
-                </linearGradient>
-                <linearGradient id="header-wave-ev-2" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stop-color="rgba(245, 182, 158, 0.35)" />
-                  <stop offset="45%" stop-color="rgba(141, 185, 240, 0.2)" />
-                  <stop offset="100%" stop-color="rgba(8, 16, 30, 0.05)" />
-                </linearGradient>
-                <linearGradient id="header-wave-ev-3" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stop-color="rgba(220, 232, 245, 0.6)" />
-                  <stop offset="50%" stop-color="rgba(141, 185, 240, 0.22)" />
-                  <stop offset="100%" stop-color="rgba(6, 12, 22, 0)" />
-                </linearGradient>
-              </defs>
-              <g class="modal-wave-group modal-wave-group-1">
-                <path class="modal-wave-path modal-wave-path-1" d="M 0 50 Q 150 25 300 50 T 600 50 T 900 50 T 1200 50 T 1500 50 T 1800 50 T 2100 50 T 2400 50 L 2400 100 L 0 100 Z" fill="url(#header-wave-ev-1)" />
-              </g>
-              <g class="modal-wave-group modal-wave-group-2">
-                <path class="modal-wave-path modal-wave-path-2" d="M 0 60 Q 200 35 400 60 T 800 60 T 1200 60 T 1600 60 T 2000 60 T 2400 60 L 2400 100 L 0 100 Z" fill="url(#header-wave-ev-2)" />
-              </g>
-              <g class="modal-wave-group modal-wave-group-3">
-                <path class="modal-wave-path modal-wave-path-3" d="M 0 40 Q 100 20 200 40 T 400 40 T 600 40 T 800 40 T 1000 40 T 1200 40 T 1400 40 T 1600 40 T 1800 40 T 2000 40 T 2200 40 T 2400 40 L 2400 100 L 0 100 Z" fill="url(#header-wave-ev-3)" />
-              </g>
-            </svg>
-            <div class="modal-wave-caustic"></div>
-          </div>
-          <img
-            src="/src/assets/GoodladTwinstars_logo.svg"
-            alt="Goodlad Twinstars"
-            class="modal-brand-logo"
-          />
-          <span class="modal-brand-text">DOCUGRAPH AI</span>
-          <button
-            class="modal-close"
-            type="button"
-            aria-label="Back to home"
-            data-feature-back
-          >
-            <svg viewBox="0 0 20 20" aria-hidden="true">
-              <path d="M4 4l12 12M16 4L4 16"></path>
-            </svg>
-          </button>
-        </header>
         <button class="modal-action feature-back" type="button" data-feature-back>← Back</button>
         <h2 tabindex="-1">Answers you can check</h2>
         <p class="modal-lead">
@@ -2508,55 +2459,6 @@
         </p>
       </article>
       <article class="feature-panel modal-page" data-feature="citations" data-ready hidden>
-        <header class="modal-header">
-          <div class="modal-header-waves" aria-hidden="true">
-            <svg class="modal-waves-svg" viewBox="0 0 2400 100" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="header-wave-cit-1" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stop-color="rgba(141, 185, 240, 0.45)" />
-                  <stop offset="40%" stop-color="rgba(70, 130, 200, 0.25)" />
-                  <stop offset="100%" stop-color="rgba(10, 20, 38, 0.08)" />
-                </linearGradient>
-                <linearGradient id="header-wave-cit-2" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stop-color="rgba(245, 182, 158, 0.35)" />
-                  <stop offset="45%" stop-color="rgba(141, 185, 240, 0.2)" />
-                  <stop offset="100%" stop-color="rgba(8, 16, 30, 0.05)" />
-                </linearGradient>
-                <linearGradient id="header-wave-cit-3" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stop-color="rgba(220, 232, 245, 0.6)" />
-                  <stop offset="50%" stop-color="rgba(141, 185, 240, 0.22)" />
-                  <stop offset="100%" stop-color="rgba(6, 12, 22, 0)" />
-                </linearGradient>
-              </defs>
-              <g class="modal-wave-group modal-wave-group-1">
-                <path class="modal-wave-path modal-wave-path-1" d="M 0 50 Q 150 25 300 50 T 600 50 T 900 50 T 1200 50 T 1500 50 T 1800 50 T 2100 50 T 2400 50 L 2400 100 L 0 100 Z" fill="url(#header-wave-cit-1)" />
-              </g>
-              <g class="modal-wave-group modal-wave-group-2">
-                <path class="modal-wave-path modal-wave-path-2" d="M 0 60 Q 200 35 400 60 T 800 60 T 1200 60 T 1600 60 T 2000 60 T 2400 60 L 2400 100 L 0 100 Z" fill="url(#header-wave-cit-2)" />
-              </g>
-              <g class="modal-wave-group modal-wave-group-3">
-                <path class="modal-wave-path modal-wave-path-3" d="M 0 40 Q 100 20 200 40 T 400 40 T 600 40 T 800 40 T 1000 40 T 1200 40 T 1400 40 T 1600 40 T 1800 40 T 2000 40 T 2200 40 T 2400 40 L 2400 100 L 0 100 Z" fill="url(#header-wave-cit-3)" />
-              </g>
-            </svg>
-            <div class="modal-wave-caustic"></div>
-          </div>
-          <img
-            src="/src/assets/GoodladTwinstars_logo.svg"
-            alt="Goodlad Twinstars"
-            class="modal-brand-logo"
-          />
-          <span class="modal-brand-text">DOCUGRAPH AI</span>
-          <button
-            class="modal-close"
-            type="button"
-            aria-label="Back to home"
-            data-feature-back
-          >
-            <svg viewBox="0 0 20 20" aria-hidden="true">
-              <path d="M4 4l12 12M16 4L4 16"></path>
-            </svg>
-          </button>
-        </header>
         <button class="modal-action feature-back" type="button" data-feature-back>← Back</button>
         <h2 tabindex="-1">Every claim points to its page</h2>
         <p class="modal-lead">
@@ -2577,55 +2479,6 @@
         <p class="modal-lead">No citation, no claim.</p>
       </article>
       <article class="feature-panel modal-page" data-feature="entities" data-ready hidden>
-        <header class="modal-header">
-          <div class="modal-header-waves" aria-hidden="true">
-            <svg class="modal-waves-svg" viewBox="0 0 2400 100" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="header-wave-ent-1" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stop-color="rgba(141, 185, 240, 0.45)" />
-                  <stop offset="40%" stop-color="rgba(70, 130, 200, 0.25)" />
-                  <stop offset="100%" stop-color="rgba(10, 20, 38, 0.08)" />
-                </linearGradient>
-                <linearGradient id="header-wave-ent-2" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stop-color="rgba(245, 182, 158, 0.35)" />
-                  <stop offset="45%" stop-color="rgba(141, 185, 240, 0.2)" />
-                  <stop offset="100%" stop-color="rgba(8, 16, 30, 0.05)" />
-                </linearGradient>
-                <linearGradient id="header-wave-ent-3" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stop-color="rgba(220, 232, 245, 0.6)" />
-                  <stop offset="50%" stop-color="rgba(141, 185, 240, 0.22)" />
-                  <stop offset="100%" stop-color="rgba(6, 12, 22, 0)" />
-                </linearGradient>
-              </defs>
-              <g class="modal-wave-group modal-wave-group-1">
-                <path class="modal-wave-path modal-wave-path-1" d="M 0 50 Q 150 25 300 50 T 600 50 T 900 50 T 1200 50 T 1500 50 T 1800 50 T 2100 50 T 2400 50 L 2400 100 L 0 100 Z" fill="url(#header-wave-ent-1)" />
-              </g>
-              <g class="modal-wave-group modal-wave-group-2">
-                <path class="modal-wave-path modal-wave-path-2" d="M 0 60 Q 200 35 400 60 T 800 60 T 1200 60 T 1600 60 T 2000 60 T 2400 60 L 2400 100 L 0 100 Z" fill="url(#header-wave-ent-2)" />
-              </g>
-              <g class="modal-wave-group modal-wave-group-3">
-                <path class="modal-wave-path modal-wave-path-3" d="M 0 40 Q 100 20 200 40 T 400 40 T 600 40 T 800 40 T 1000 40 T 1200 40 T 1400 40 T 1600 40 T 1800 40 T 2000 40 T 2200 40 T 2400 40 L 2400 100 L 0 100 Z" fill="url(#header-wave-ent-3)" />
-              </g>
-            </svg>
-            <div class="modal-wave-caustic"></div>
-          </div>
-          <img
-            src="/src/assets/GoodladTwinstars_logo.svg"
-            alt="Goodlad Twinstars"
-            class="modal-brand-logo"
-          />
-          <span class="modal-brand-text">DOCUGRAPH AI</span>
-          <button
-            class="modal-close"
-            type="button"
-            aria-label="Back to home"
-            data-feature-back
-          >
-            <svg viewBox="0 0 20 20" aria-hidden="true">
-              <path d="M4 4l12 12M16 4L4 16"></path>
-            </svg>
-          </button>
-        </header>
         <button class="modal-action feature-back" type="button" data-feature-back>← Back</button>
         <h2 tabindex="-1">See who and what is involved</h2>
         <p class="modal-lead">
@@ -2647,55 +2500,6 @@
         <p class="modal-lead">Every name, in context.</p>
       </article>
       <article class="feature-panel modal-page" data-feature="relations" data-ready hidden>
-        <header class="modal-header">
-          <div class="modal-header-waves" aria-hidden="true">
-            <svg class="modal-waves-svg" viewBox="0 0 2400 100" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="header-wave-rel-1" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stop-color="rgba(141, 185, 240, 0.45)" />
-                  <stop offset="40%" stop-color="rgba(70, 130, 200, 0.25)" />
-                  <stop offset="100%" stop-color="rgba(10, 20, 38, 0.08)" />
-                </linearGradient>
-                <linearGradient id="header-wave-rel-2" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stop-color="rgba(245, 182, 158, 0.35)" />
-                  <stop offset="45%" stop-color="rgba(141, 185, 240, 0.2)" />
-                  <stop offset="100%" stop-color="rgba(8, 16, 30, 0.05)" />
-                </linearGradient>
-                <linearGradient id="header-wave-rel-3" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stop-color="rgba(220, 232, 245, 0.6)" />
-                  <stop offset="50%" stop-color="rgba(141, 185, 240, 0.22)" />
-                  <stop offset="100%" stop-color="rgba(6, 12, 22, 0)" />
-                </linearGradient>
-              </defs>
-              <g class="modal-wave-group modal-wave-group-1">
-                <path class="modal-wave-path modal-wave-path-1" d="M 0 50 Q 150 25 300 50 T 600 50 T 900 50 T 1200 50 T 1500 50 T 1800 50 T 2100 50 T 2400 50 L 2400 100 L 0 100 Z" fill="url(#header-wave-rel-1)" />
-              </g>
-              <g class="modal-wave-group modal-wave-group-2">
-                <path class="modal-wave-path modal-wave-path-2" d="M 0 60 Q 200 35 400 60 T 800 60 T 1200 60 T 1600 60 T 2000 60 T 2400 60 L 2400 100 L 0 100 Z" fill="url(#header-wave-rel-2)" />
-              </g>
-              <g class="modal-wave-group modal-wave-group-3">
-                <path class="modal-wave-path modal-wave-path-3" d="M 0 40 Q 100 20 200 40 T 400 40 T 600 40 T 800 40 T 1000 40 T 1200 40 T 1400 40 T 1600 40 T 1800 40 T 2000 40 T 2200 40 T 2400 40 L 2400 100 L 0 100 Z" fill="url(#header-wave-rel-3)" />
-              </g>
-            </svg>
-            <div class="modal-wave-caustic"></div>
-          </div>
-          <img
-            src="/src/assets/GoodladTwinstars_logo.svg"
-            alt="Goodlad Twinstars"
-            class="modal-brand-logo"
-          />
-          <span class="modal-brand-text">DOCUGRAPH AI</span>
-          <button
-            class="modal-close"
-            type="button"
-            aria-label="Back to home"
-            data-feature-back
-          >
-            <svg viewBox="0 0 20 20" aria-hidden="true">
-              <path d="M4 4l12 12M16 4L4 16"></path>
-            </svg>
-          </button>
-        </header>
         <button class="modal-action feature-back" type="button" data-feature-back>← Back</button>
         <h2 tabindex="-1">Find links no single document shows</h2>
         <p class="modal-lead">
